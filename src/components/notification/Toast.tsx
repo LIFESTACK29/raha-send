@@ -29,7 +29,7 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
     const { removeToast } = useToast();
     const { navigate } = useNavigation<Nav>();
     const entryProgress = useSharedValue(0);
-    const scale = useSharedValue(0.8);
+    const scale = useSharedValue(0.5);
     const borderProgress = useSharedValue(0);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -39,26 +39,22 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
     const context = useSharedValue({ x: 0, y: 0 });
 
     React.useEffect(() => {
-        entryProgress.value = withTiming(1, {
-            duration: 390,
-            easing: Easing.bezier(0.19, 0.67, 0.24, 1.01),
+        entryProgress.value = withSpring(1, {
+            damping: 15,
+            stiffness: 100,
+            mass: 1,
         });
 
-        scale.value = withSequence(
-            withTiming(1.05, {
-                duration: 200,
-                easing: Easing.out(Easing.exp),
-            }),
-            withSpring(1, {
-                damping: 8,
-                stiffness: 300,
-            })
-        );
+        scale.value = withSpring(1, {
+            damping: 12,
+            stiffness: 120,
+            mass: 0.8,
+        });
 
         borderProgress.value = withSequence(
             withDelay(150, withTiming(1, { duration: 300 })),
             withDelay(100, withTiming(1.2, { duration: 200 })),
-            withTiming(1, { duration: 150 })
+            withTiming(1, { duration: 150 }),
         );
     }, []);
 
@@ -94,14 +90,14 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
         });
 
     const containerStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(entryProgress.value, [0, 0.5, 1], [0, 0.8, 1]),
+        opacity: interpolate(entryProgress.value, [0, 0.4, 1], [0, 0.7, 1]),
         transform: [
             {
                 translateY: interpolate(
                     entryProgress.value,
                     [0, 1],
-                    [-50, 0],
-                    Extrapolation.CLAMP
+                    [-100, 0],
+                    Extrapolation.CLAMP,
                 ),
             },
             { scale: scale.value },
@@ -121,26 +117,30 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
             borderProgress.value,
             [0, 1],
             [0, 2],
-            Extrapolation.CLAMP
+            Extrapolation.CLAMP,
         ),
         borderRightWidth: interpolate(
             borderProgress.value,
             [0, 1],
             [0, 2],
-            Extrapolation.CLAMP
+            Extrapolation.CLAMP,
         ),
         borderColor:
             toast.type === "success"
                 ? "#10b981"
                 : toast.type === "error"
-                ? "#ef4444"
-                : toast.type === "warning"
-                ? "#f59e0b"
-                : toast.type === "info"
-                ? "#60a5fa"
-                : toast.type === "message"
-                ? "#ffffff20"
-                : "#ffffff",
+                  ? "#ef4444"
+                  : toast.type === "warning"
+                    ? "#f59e0b"
+                    : toast.type === "info"
+                      ? "#60a5fa"
+                      : toast.type === "message"
+                        ? toast.props?.theme === "dark"
+                            ? "#ffffff20"
+                            : "#00000010"
+                        : toast.props?.theme === "dark"
+                          ? "#ffffff"
+                          : "#000000",
         borderRadius: 20,
     }));
 
@@ -163,28 +163,28 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
         <Animated.View
             style={[containerStyle, gestureStyle]}
             className={cn(
-                `px-4 py-5 rounded-[20px] shadow-xl mt-2 mb-2 mx-4 min-h-24 h-auto relative overflow-hidden flex flex-col gap-3 justify-center bg-[#222222] ${
+                `px-4 py-3.5 rounded-[20px] shadow-xl mt-2 mb-2 mx-4 min-h-20 h-auto relative overflow-hidden flex flex-col gap-2 justify-center bg-white ${
                     toast.props?.theme === "dark" && "bg-[#222222]"
-                }`
+                }`,
             )}
         >
             <View className="flex flex-row items-center gap-4">
                 <Pressable>{getIcon()}</Pressable>
                 <Text
                     className={cn(
-                        "text-white font-gtwp-condensed-bold tracking-wide text-[15px] opacity-80 capitalize",
-                        toast.props?.theme === "dark" && "text-white"
+                        "text-[#222222] font-gtwp-condensed-bold tracking-wide text-[16px] xl:text-[20px] opacity-90 capitalize",
+                        toast.props?.theme === "dark" && "text-white",
                     )}
                 >
-                    {toast.title}
+                    {toast.title.toLowerCase()}
                 </Text>
             </View>
             {toast.message && (
                 <View className="pl-2 pb-2">
                     <Text
                         className={cn(
-                            "text-black font-gtwp-condensed-medium tracking-wider text-[13.5px] leading-5",
-                            toast.props?.theme === "dark" && "text-white"
+                            "text-[#222222]/70 font-gtwp-condensed-medium tracking-tight text-[13px] leading-5",
+                            toast.props?.theme === "dark" && "text-white",
                         )}
                     >
                         {toast.message.toLowerCase()}
@@ -240,7 +240,7 @@ const ToastItem: React.FC<{ toast: Toast }> = ({ toast }) => {
                                     <Text className="font-gtwp-condensed-bold text-white tracking-wide text-base">
                                         {toast.messageProps?.identifierTitle}
                                     </Text>
-                                    <Text className="text-[12px] mt-1 font-gtwp-condensed-medium tracking-wide text-white opacity-80">
+                                    <Text className="text-[12px] mt-1 font-gtwp-condensed-medium tracking-tight text-white opacity-80">
                                         {toast.title}
                                     </Text>
                                 </View>

@@ -27,20 +27,20 @@ function OnboardingLayerTwoScreen() {
                         <View className="w-2 h-2 rounded-full bg-gray-300" />
                     </View>
 
-                    <Text className="text-2xl tracking-tight font-bold text-green-900 text-center">
+                    <Text className="text-2xl tracking-tight font-semibold text-green-900 text-center">
                         No Haggling, No Drama
                     </Text>
 
-                    <Text className="text-center text-base text-green-800 mt-3 leading-6">
+                    <Text className="text-center text-sm tracking-tight text-green-800 mt-3 leading-6">
                         See the exact price before you book. Pay securely and
                         avoid the "Madam add money for fuel" stories.
                     </Text>
 
                     <Pressable
                         onPress={() => navigate("OnboardingLayerThree")}
-                        className="mt-8 bg-foreground py-4 rounded-full flex-row justify-center items-center gap-2"
+                        className="mt-8 bg-foreground py-2 rounded-full flex-row justify-center items-center gap-2 h-16"
                     >
-                        <Text className="text-white text-lg font-semibold">
+                        <Text className="text-white text-base font-medium">
                             Next
                         </Text>
                         <MoveRight color="white" size={20} />

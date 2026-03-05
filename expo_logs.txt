@@ -1,0 +1,9 @@
+env: load .env
+env: export EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY CLERK_SECRET_KEY
+Starting project at /Users/david/Desktop/Projects/MobileApps/RahaSend/mobile
+› Port 8081 is running this app in another window
+  /Users/david/Desktop/Projects/MobileApps/RahaSend/mobile (pid 2962)
+Input is required, but 'npx expo' is in non-interactive mode.
+Required input:
+> Use port 8082 instead?
+› Skipping dev server

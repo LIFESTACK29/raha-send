@@ -2,60 +2,165 @@ import CustomButton from "@/src/components/form/CustomButton";
 import OTPInput from "@/src/components/form/OTPInput";
 import AuthLayout from "@/src/layouts/AuthLayout";
 import { Nav } from "@/src/types";
-import { useNavigation } from "@react-navigation/native";
-import { MailCheck, Timer } from "lucide-react-native";
-import { useState } from "react";
-import { Text, View } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { Timer } from "lucide-react-native";
+import { useState, useMemo, useEffect } from "react";
+import { Pressable, Text, View } from "react-native";
 import { useTimer } from "react-timer-hook";
-
-const time = new Date();
-time.setSeconds(time.getSeconds() + 60);
+import { useSignIn, useSignUp } from "@clerk/clerk-expo";
+import { useToast } from "@/src/context/ToastContext";
 
 const VerifyEmailScreen = () => {
     const { navigate } = useNavigation<Nav>();
-    const { seconds, minutes, isRunning, start, pause, resume, restart } =
-        useTimer({
-            expiryTimestamp: time,
-            onExpire: () => console.warn("Countdown Finished!"), // Your action here
-        });
-    const [code, setCode] = useState("");
+    const route = useRoute<any>();
+    const { email, type } = route.params || {}; // 'sign_in' or 'sign_up'
 
-    // const check = code.length === 4;
+    const {
+        signIn,
+        setActive: setSignInActive,
+        isLoaded: signInLoaded,
+    } = useSignIn();
+    const {
+        signUp,
+        setActive: setSignUpActive,
+        isLoaded: signUpLoaded,
+    } = useSignUp();
+    const { addToast } = useToast();
+
+    const [code, setCode] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Fix: Timer starts exactly when screen mounts
+    const expiryTimestamp = useMemo(() => {
+        const t = new Date();
+        t.setSeconds(t.getSeconds() + 60);
+        return t;
+    }, []);
+
+    const { seconds, minutes, isRunning, restart } = useTimer({
+        expiryTimestamp,
+        autoStart: true,
+    });
+
+    // Security check: Redirect if params are missing
+    useEffect(() => {
+        if (!email || !type) navigate("Login" as any);
+    }, [email, type]);
+
+    const onVerifyPress = async () => {
+        if (!signInLoaded || !signUpLoaded) return;
+        setIsLoading(true);
+
+        try {
+            if (type === "sign_in") {
+                const result = await signIn.attemptFirstFactor({
+                    strategy: "email_code",
+                    code,
+                });
+                if (result.status === "complete") {
+                    await setSignInActive({ session: result.createdSessionId });
+                }
+            } else {
+                const result = await signUp.attemptEmailAddressVerification({
+                    code,
+                });
+                if (result.status === "complete") {
+                    await setSignUpActive({ session: result.createdSessionId });
+                }
+            }
+        } catch (err: any) {
+            addToast({
+                title: "Invalid Code",
+                message:
+                    err.errors?.[0]?.longMessage || "The code is incorrect.",
+                type: "error",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const onResendPress = async () => {
+        // This 'if' block satisfies the TS compiler by ensuring
+        // signIn and signUp exist before the logic runs.
+        if (!signIn || !signUp) {
+            return;
+        }
+
+        try {
+            if (type === "sign_in") {
+                const factor = signIn.supportedFirstFactors?.find(
+                    (f) => f.strategy === "email_code",
+                );
+
+                // Added a check to make sure the factor was actually found
+                if (factor && "emailAddressId" in factor) {
+                    await signIn.prepareFirstFactor({
+                        strategy: "email_code",
+                        emailAddressId: factor.emailAddressId,
+                    });
+                } else {
+                    throw new Error("No valid email factor found");
+                }
+            } else {
+                // Flow for new users
+                await signUp.prepareEmailAddressVerification({
+                    strategy: "email_code",
+                });
+            }
+
+            // Reset the UI/Timer
+            const newTime = new Date();
+            newTime.setSeconds(newTime.getSeconds() + 60);
+            restart(newTime);
+
+            addToast({
+                title: "Sent",
+                message: "A new code has been sent.",
+                type: "success",
+            });
+        } catch (err: any) {
+            console.error("Resend error:", JSON.stringify(err, null, 2));
+            addToast({
+                title: "Error",
+                message: "Could not resend code. Please try again.",
+                type: "error",
+            });
+        }
+    };
 
     return (
         <AuthLayout>
-            <View className="flex-1 h-full px-5 py-5">
-                <View className="gap-2">
-                    <View className="w-16 h-16 bg-foreground flex flex-row items-center justify-center rounded-[18px]">
-                        <MailCheck color={"#e8e8e8"} opacity={0.9} />
-                    </View>
-                    <Text className="text-foreground text-3xl font-bold">
-                        Enter confirmation code
-                    </Text>
-                    <Text className="text-foreground/50 text-base font-normal">
-                        Please enter the 4-digit code we sent to your email
-                        address.
-                    </Text>
-                </View>
-                <View className="py-5">
-                    <OTPInput code={code} setCode={setCode} />
-                    <View className="flex flex-col items-center gap-3 py-6">
-                        <Text className="text-text-color text-center font-medium text-[16px]">
-                            Didn't receive the code?
+            <View className="flex-1 px-5 py-5">
+                <Text className="text-foreground text-2xl font-medium">
+                    Verify Email
+                </Text>
+                <Text className="text-foreground/50 text-base mb-5">
+                    Code sent to {email}
+                </Text>
+
+                <OTPInput code={code} setCode={setCode} />
+
+                <View className="items-center py-6 gap-4">
+                    <Pressable
+                        onPress={onResendPress}
+                        disabled={isRunning}
+                        className="flex-row items-center gap-2 opacity-80"
+                    >
+                        <Timer size={18} color="#000" />
+                        <Text>
+                            {isRunning
+                                ? `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`
+                                : "Resend Code"}
                         </Text>
-                        <View className="bg-accent-green/50 h-9 rounded-full flex flex-row items-center gap-1 justify-center px-6">
-                            <Timer size={17} color={"#022401"} />
-                            <Text className="font-semibold tracking-tight text-sm text-foreground">
-                                Resend in {minutes}:
-                                {seconds < 10 ? `0${seconds}` : seconds}
-                            </Text>
-                        </View>
-                    </View>
+                    </Pressable>
                 </View>
-                <View className="absolute bottom-10 w-full left-4 right-4">
+
+                <View className="absolute bottom-10 left-4 right-4">
                     <CustomButton
-                        text="Verify Account"
-                        action={() => navigate("MainApp")}
+                        text={isLoading ? "Verifying..." : "Verify Account"}
+                        action={onVerifyPress}
+                        disabled={code.length < 6 || isLoading}
                     />
                 </View>
             </View>

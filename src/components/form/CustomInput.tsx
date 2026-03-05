@@ -13,6 +13,7 @@ const CustomInput = ({
     value,
     setValue,
     label,
+    autoCapitalize,
 }: {
     placeholder?: string;
     keyboardType?: KeyboardTypeOptions | undefined;
@@ -21,23 +22,24 @@ const CustomInput = ({
     setValue: (e: string) => void;
     inputClassName?: string;
     label?: string;
+    autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) => {
     return (
         <View className="py-1">
             {label && (
-                <Text className="text-foreground text-base font-semibold mb-1 tracking-[-0.15px] px-1.5">
+                <Text className="text-foreground/90 text-sm font-medium mb-0.5 tracking-[-0.25px] px-1.5">
                     {label}
                 </Text>
             )}
-            <View className="h-[4.5rem]" style={styles.inputContainer}>
+            <View className="h-[4.3rem]" style={styles.inputContainer}>
                 <TextInput
                     placeholder={placeholder}
                     placeholderTextColor="#9CA3AF"
-                    className="px-5 flex flex-row items-center text-base text-gray-800 h-full leading-none pt-1.5"
+                    className="px-5 flex flex-row items-center text-[13px] text-gray-800 h-full leading-none pt-1.5"
                     value={String(value)}
                     onChangeText={(e) => setValue(e)}
                     keyboardType={keyboardType ? keyboardType : "default"}
-                    autoCapitalize="none"
+                    autoCapitalize={autoCapitalize ? autoCapitalize : "none"}
                     autoCorrect={autoCorrect ? autoCorrect : false}
                 />
             </View>

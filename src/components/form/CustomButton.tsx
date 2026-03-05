@@ -10,6 +10,7 @@ const CustomButton = ({
     action,
     type,
     processing,
+    disabled,
 }: {
     text: string;
     action: () => void;
@@ -17,29 +18,31 @@ const CustomButton = ({
     textClass?: string;
     className?: string;
     processing?: boolean;
+    disabled?: boolean;
 }) => {
     return (
         <Pressable
             className={cn(
-                "h-[4.1rem] flex items-center justify-center rounded-full bg-foreground mx-1",
+                "h-[4rem] flex items-center justify-center rounded-full bg-foreground mx-1",
                 `${
                     type === "striped" &&
                     "border-[1.2px] border-foreground bg-[#F1662305]"
                 }`,
                 className,
-                processing && "bg-foreground/10"
+                processing && "bg-foreground/10",
+                (disabled || processing) && "opacity-50",
             )}
             onPress={action}
-            disabled={processing}
+            disabled={processing || disabled}
         >
             {processing ? (
                 <ActivityIndicator color={"#F16623"} />
             ) : (
                 <Text
                     className={cn(
-                        "text-center text-white font-medium text-lg tracking-[-0.15px]",
+                        "text-center text-white font-medium text-base tracking-[-0.15px]",
                         `${type === "striped" && "text-accent"}`,
-                        textClass
+                        textClass,
                     )}
                 >
                     {text}

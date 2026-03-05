@@ -4,7 +4,7 @@ import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 const OTPInput = ({
     code,
     setCode,
-    maximumLength = 4,
+    maximumLength = 6,
 }: {
     code: string;
     setCode: (text: string) => void;
@@ -26,7 +26,7 @@ const OTPInput = ({
             <View
                 key={index}
                 style={styles.boxShadow}
-                className="flex-1 h-[4.3rem] bg-[#F0F2F5] justify-center items-center"
+                className="flex-1 h-[4rem] bg-[#F0F2F5] justify-center items-center"
             >
                 <Text className="text-[#1A2F1A] text-2xl font-bold">
                     {digit}
@@ -38,8 +38,8 @@ const OTPInput = ({
     return (
         <View className="justify-center items-center py-4">
             <Pressable
-                // Added gap-x-[2px] to handle the spacing between flex items
-                className="flex-row justify-between w-full gap-x-[23px]"
+                // Reduced gap to accommodate 6 boxes
+                className="flex-row justify-between w-full gap-x-2.5"
                 onPress={handlePress}
             >
                 {boxArray.map(boxDigit)}

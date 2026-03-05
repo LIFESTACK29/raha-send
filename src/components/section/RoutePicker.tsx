@@ -1,7 +1,17 @@
 import { View } from "react-native";
 import CustomInput from "../form/CustomInput";
 
-const RoutePicker = () => {
+const RoutePicker = ({
+    pickup,
+    setPickup,
+    dropoff,
+    setDropoff,
+}: {
+    pickup: string;
+    setPickup: (val: string) => void;
+    dropoff: string;
+    setDropoff: (val: string) => void;
+}) => {
     return (
         <View className="flex-row py-2 px-2">
             {/* Left Indicator Section */}
@@ -24,9 +34,9 @@ const RoutePicker = () => {
                 {/* Pickup Section */}
                 <View className="mb-4">
                     <CustomInput
-                        value={""}
-                        setValue={() => {}}
-                        placeholder="📍 2 Eliozu Road, Rumuchiakara..."
+                        value={pickup}
+                        setValue={setPickup}
+                        placeholder="📍 Enter pickup address..."
                         label="Pickup Point"
                     />
                 </View>
@@ -34,9 +44,9 @@ const RoutePicker = () => {
                 {/* Dropoff Section */}
                 <View>
                     <CustomInput
-                        value={""}
-                        setValue={() => {}}
-                        placeholder="📍 12 Ozuoba Road, Rumuosi..."
+                        value={dropoff}
+                        setValue={setDropoff}
+                        placeholder="📍 Enter dropoff address..."
                         label="Dropoff Point"
                     />
                 </View>

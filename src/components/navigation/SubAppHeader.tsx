@@ -20,7 +20,7 @@ const SubAppHeader = ({ title }: { title?: string }) => {
                     <MoveLeft color="#022401" />
                 </Pressable>
                 {title && (
-                    <Text className="text-foreground text-xl font-medium tracking-tight">
+                    <Text className="text-foreground text-lg font-medium tracking-tight">
                         {title}
                     </Text>
                 )}

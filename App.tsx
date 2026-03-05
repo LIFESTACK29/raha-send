@@ -12,6 +12,42 @@ import AppNavigation from "./src/routes";
 import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { Platform } from "react-native";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
+import * as SecureStore from "expo-secure-store";
+
+const tokenCache = {
+    async getToken(key: string) {
+        try {
+            const item = await SecureStore.getItemAsync(key);
+            if (item) {
+                console.log(`${key} was used 🔐 \n`);
+            } else {
+                console.log("No values stored under key: " + key);
+            }
+            return item;
+        } catch (error) {
+            console.error("SecureStore get item error: ", error);
+            await SecureStore.deleteItemAsync(key);
+            return null;
+        }
+    },
+    async saveToken(key: string, value: string) {
+        try {
+            return SecureStore.setItemAsync(key, value);
+        } catch (err) {
+            return;
+        }
+    },
+};
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+
+if (!publishableKey) {
+    throw new Error(
+        "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env",
+    );
+}
 
 export default function App() {
     const { colorScheme } = useColorScheme();
@@ -36,15 +72,25 @@ export default function App() {
     }
 
     return (
-        <SafeAreaProvider>
-            <GestureHandlerRootView>
-                <Provider>
-                    <StatusBar
-                        style={colorScheme === "dark" ? "light" : "dark"}
-                    />
-                    <AppNavigation />
-                </Provider>
-            </GestureHandlerRootView>
-        </SafeAreaProvider>
+        <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
+            <ClerkLoaded>
+                <SafeAreaProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                        <Provider>
+                            <BottomSheetModalProvider>
+                                <StatusBar
+                                    style={
+                                        colorScheme === "dark"
+                                            ? "light"
+                                            : "dark"
+                                    }
+                                />
+                                <AppNavigation />
+                            </BottomSheetModalProvider>
+                        </Provider>
+                    </GestureHandlerRootView>
+                </SafeAreaProvider>
+            </ClerkLoaded>
+        </ClerkProvider>
     );
 }

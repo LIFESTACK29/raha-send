@@ -49,8 +49,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
         title,
         message,
         type = "info",
-        duration = 3000,
-        props,
+        duration = 2000,
+        props = { theme: "light" },
     }: {
         title: string;
         message?: string;

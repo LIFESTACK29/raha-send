@@ -4,7 +4,7 @@ import { Image, Pressable, View } from "react-native";
 const AdvertCard = () => {
     return (
         <View className="px-5 py-5">
-            <View className="relative h-40 rounded-[25px] bg-gray-400 overflow-hidden">
+            <View className="relative h-40 rounded-[20px] bg-gray-400 overflow-hidden">
                 <Image
                     source={require("@/src/assets/images/ads.png")}
                     className="w-full h-full"

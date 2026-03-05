@@ -11,8 +11,17 @@ const categories = [
     "Other",
 ];
 
-const CategorySelector = () => {
-    const [selected, setSelected] = useState("Other");
+const CategorySelector = ({
+    onSelect,
+}: {
+    onSelect?: (category: string) => void;
+}) => {
+    const [selected, setSelected] = useState("Food");
+
+    const handleSelect = (item: string) => {
+        setSelected(item);
+        onSelect?.(item);
+    };
 
     return (
         <View className="py-3 bg-[#F4F4F0]">
@@ -26,7 +35,7 @@ const CategorySelector = () => {
                         key={item}
                         label={item}
                         isSelected={selected === item}
-                        onPress={() => setSelected(item)}
+                        onPress={() => handleSelect(item)}
                     />
                 ))}
             </View>

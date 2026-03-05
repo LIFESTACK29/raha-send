@@ -65,33 +65,33 @@ const RecentActivityItem = ({
                                     ? "paper-plane-outline"
                                     : "bicycle-outline"
                             }
-                            size={22}
+                            size={20}
                             color="#1A2F1A"
                         />
                     </View>
 
                     <View className="ml-3 flex-1">
                         <Text
-                            className="text-[#1A2F1A] font-bold text-base tracking-tight"
+                            className="text-[#1A2F1A] font-medium text-base tracking-tight"
                             numberOfLines={1}
                         >
                             {item.location}
                         </Text>
-                        <Text className="text-gray-400 text-xs mt-1">
+                        <Text className="text-gray-400 text-xs mt-1 tracking-tight">
                             {item.timestamp}
                         </Text>
                     </View>
                 </View>
 
                 <View className="items-end">
-                    <Text className="text-[#1A2F1A] font-bold text-lg mb-1">
+                    <Text className="text-[#1A2F1A] font-semibold tracking-tight text-base mb-1">
                         {item.amount}
                     </Text>
                     <View
-                        className={`px-3 py-1 rounded-full ${statusStyle.container}`}
+                        className={`px-3 py-1.5 rounded-full ${statusStyle.container}`}
                     >
                         <Text
-                            className={`text-[10px] font-bold ${statusStyle.text}`}
+                            className={`text-[9px] font-semibold tracking-tight ${statusStyle.text}`}
                         >
                             {item.status}
                         </Text>
