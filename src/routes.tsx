@@ -42,6 +42,8 @@ import SavedAddressesScreen from "./screens/app/customer/profile/addresses";
 import AddAddressScreen from "./screens/app/customer/profile/addresses/add-address";
 import NotificationsScreen from "./screens/app/customer/notifications";
 import RiderPersonalInformationScreen from "./screens/app/rider/profile/personal-information";
+import { DissiOverlay } from "./components/DissiOverlay";
+import FindRiderSheet from "./components/section/FindRiderSheet";
 
 const queryClient = new QueryClient();
 
@@ -244,90 +246,106 @@ const AppNavigator = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const role = route.params?.role || "customer"; // Default to customer for now
+    const [riderSheetVisible, setRiderSheetVisible] = useState(false);
 
     console.log("[AppNavigator] Rendering for role:", role);
 
     const tabs = role === "customer" ? bottomTabButtons : bottomTabButtonsRider;
 
     return (
-        <Tab.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-                ...TabScreenOptions,
-                tabBarStyle: {
-                    elevation: 0,
-                    padding: 10,
-                    paddingTop: 23,
-                    borderWidth: 0,
-                    borderColor: "#ffffff",
-                    paddingBottom: Platform.OS === "android" ? 10 : 20,
-                    height: Platform.OS === "android" ? 75 : 105,
-                    display: "flex",
-                    backgroundColor: "#ffffff",
-                    borderTopLeftRadius: 30,
-                    borderTopRightRadius: 30,
-                    alignItems: "center",
-                },
-            }}
-        >
-            {tabs.map((button: any, index: number) => {
-                return (
-                    <Tab.Screen
-                        key={index}
-                        name={button.title}
-                        component={button.component}
-                        listeners={
-                            button.title.toLowerCase() === "main"
-                                ? {
-                                      tabPress: (e) => {
-                                          e.preventDefault();
-                                          navigation.navigate("QuickSend");
-                                      },
-                                  }
-                                : undefined
-                        }
-                        options={{
-                            // 1. Add the Custom Animated Button here
-                            tabBarButton: (props) => (
-                                <AnimatedTabButton {...props} />
-                            ),
-
-                            tabBarIcon: ({ focused }) =>
-                                button.title.toLowerCase() !== "main" ? (
-                                    button.icon(focused)
-                                ) : (
-                                    // Keep your existing design, but it will now animate!
-                                    <View className="bg-foreground w-[65px] h-[65px] rounded-full border-2 border-white flex items-center justify-center mb-6 shadow-lg">
-                                        <Motorbike
-                                            size={28}
-                                            color={"#ffffff"}
-                                            strokeWidth={2}
-                                        />
-                                    </View>
+        <>
+            <Tab.Navigator
+                initialRouteName="Home"
+                screenOptions={{
+                    ...TabScreenOptions,
+                    tabBarStyle: {
+                        elevation: 0,
+                        padding: 10,
+                        paddingTop: 23,
+                        borderWidth: 0,
+                        borderColor: "#ffffff",
+                        paddingBottom: Platform.OS === "android" ? 10 : 20,
+                        height: Platform.OS === "android" ? 75 : 105,
+                        display: "flex",
+                        backgroundColor: "#ffffff",
+                        borderTopLeftRadius: 30,
+                        borderTopRightRadius: 30,
+                        alignItems: "center",
+                    },
+                }}
+            >
+                {tabs.map((button: any, index: number) => {
+                    return (
+                        <Tab.Screen
+                            key={index}
+                            name={button.title}
+                            component={button.component}
+                            listeners={
+                                button.title.toLowerCase() === "main"
+                                    ? {
+                                          tabPress: (e) => {
+                                              e.preventDefault();
+                                              navigation.navigate("QuickSend");
+                                          },
+                                      }
+                                    : undefined
+                            }
+                            options={{
+                                // 1. Add the Custom Animated Button here
+                                tabBarButton: (props) => (
+                                    <AnimatedTabButton {...props} />
                                 ),
-                            tabBarLabel: ({ children, focused }) => {
-                                return (
-                                    <>
-                                        {children.toLowerCase() !== "main" && (
-                                            <Text
-                                                className={cn(
-                                                    "font-medium text-xs mt-[1px] tracking-tight py-[2px]",
-                                                    focused
-                                                        ? "text-foreground"
-                                                        : "text-gray-blue",
-                                                )}
-                                            >
-                                                {children}
-                                            </Text>
-                                        )}
-                                    </>
-                                );
-                            },
-                        }}
+
+                                tabBarIcon: ({ focused }) =>
+                                    button.title.toLowerCase() !== "main" ? (
+                                        button.icon(focused)
+                                    ) : (
+                                        // Keep your existing design, but it will now animate!
+                                        <View className="bg-foreground w-[65px] h-[65px] rounded-full border-2 border-white flex items-center justify-center mb-6 shadow-lg">
+                                            <Motorbike
+                                                size={28}
+                                                color={"#ffffff"}
+                                                strokeWidth={2}
+                                            />
+                                        </View>
+                                    ),
+                                tabBarLabel: ({ children, focused }) => {
+                                    return (
+                                        <>
+                                            {children.toLowerCase() !==
+                                                "main" && (
+                                                <Text
+                                                    className={cn(
+                                                        "font-medium text-xs mt-[1px] tracking-tight py-[2px]",
+                                                        focused
+                                                            ? "text-foreground"
+                                                            : "text-gray-blue",
+                                                    )}
+                                                >
+                                                    {children}
+                                                </Text>
+                                            )}
+                                        </>
+                                    );
+                                },
+                            }}
+                        />
+                    );
+                })}
+            </Tab.Navigator>
+
+            {role === "customer" && (
+                <>
+                    <DissiOverlay
+                        onOpenRiderModal={() => setRiderSheetVisible(true)}
                     />
-                );
-            })}
-        </Tab.Navigator>
+                    <FindRiderSheet
+                        visible={riderSheetVisible}
+                        onClose={() => setRiderSheetVisible(false)}
+                    />
+                </>
+            )}
+        </>
     );
 };
 

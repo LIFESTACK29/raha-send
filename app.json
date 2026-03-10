@@ -14,7 +14,12 @@
             "backgroundColor": "#ffffff"
         },
         "ios": {
-            "supportsTablet": true
+            "supportsTablet": true,
+            "bundleIdentifier": "com.nelson404.mobile",
+            "infoPlist": {
+                "NSMicrophoneUsageDescription": "RahaSend needs access to your microphone so you can talk to the Dissi AI Voice Assistant.",
+                "NSSpeechRecognitionUsageDescription": "RahaSend needs speech recognition to transcribe your voice commands for Dissi AI."
+            }
         },
         "android": {
             "adaptiveIcon": {
@@ -22,7 +27,9 @@
                 "backgroundColor": "#ffffff"
             },
             "edgeToEdgeEnabled": true,
-            "predictiveBackGestureEnabled": false
+            "predictiveBackGestureEnabled": false,
+            "package": "com.nelson404.mobile",
+            "permissions": ["android.permission.RECORD_AUDIO"]
         },
         "web": {
             "favicon": "./assets/favicon.png"
