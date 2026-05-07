@@ -1,7 +1,7 @@
 import { Button } from "@/src/components/button";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Image,
     KeyboardAvoidingView,
@@ -14,9 +14,9 @@ import {
     Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as SecureStore from "expo-secure-store";
 import { authService, handleApiError } from "@/src/api/authService";
 import { useAuthStore } from "@/src/store/useAuthStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function OtpScreen() {
     const insets = useSafeAreaInsets();
@@ -29,13 +29,33 @@ export default function OtpScreen() {
     const [code, setCode] = useState(["", "", "", "", "", ""]);
     const inputs = useRef<Array<TextInput | null>>([]);
     const [loading, setLoading] = useState(false);
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+        };
+    }, []);
+
+    const startCooldown = () => {
+        setResendCooldown(60);
+        cooldownRef.current = setInterval(() => {
+            setResendCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(cooldownRef.current!);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
 
     const handleTextChange = (text: string, index: number) => {
         const newCode = [...code];
         newCode[index] = text;
         setCode(newCode);
 
-        // Move to next input if there's text
         if (text && index < 5) {
             inputs.current[index + 1]?.focus();
         }
@@ -64,14 +84,10 @@ export default function OtpScreen() {
             setLoading(true);
             const response = await authService.verifyOTP(tempUserId, fullCode);
 
-            // Success - save token
-            await AsyncStorage.setItem("token", response.token);
-            await AsyncStorage.setItem("user", JSON.stringify(response.user));
-            
-            // Register session in Zustand
+            await SecureStore.setItemAsync("token", response.token);
+            await SecureStore.setItemAsync("user", JSON.stringify(response.user));
+
             setAuth(response.user, response.token);
-            
-            // Navigate to Dashboard
             router.replace("/(tabs)");
         } catch (error: any) {
             Alert.alert("Verification Failed", handleApiError(error));
@@ -81,6 +97,7 @@ export default function OtpScreen() {
     };
 
     const handleResend = async () => {
+        if (resendCooldown > 0) return;
         if (!tempEmail) {
             Alert.alert("Error", "We lost track of your email. Please login again.");
             return;
@@ -88,6 +105,7 @@ export default function OtpScreen() {
         try {
             await authService.resendOTP(tempEmail);
             Alert.alert("Sent", "A new OTP has been sent to your email.");
+            startCooldown();
         } catch (error: any) {
             Alert.alert("Error", handleApiError(error));
         }
@@ -155,9 +173,12 @@ export default function OtpScreen() {
                         <Text className="text-[15px] text-gray-500 font-walsheim">
                             Didn't get any code yet?{" "}
                         </Text>
-                        <TouchableOpacity onPress={handleResend}>
-                            <Text className="text-[15px] font-walsheim-bold text-[#01656c] underline">
-                                Resend code
+                        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
+                            <Text
+                                className="text-[15px] font-walsheim-bold underline"
+                                style={{ color: resendCooldown > 0 ? "#9ca3af" : "#01656c" }}
+                            >
+                                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                             </Text>
                         </TouchableOpacity>
                     </View>

@@ -1,23 +1,22 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
-export const API_URL = "https://send-api-1v9v.onrender.com/api/v1";
-
+export const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? "https://send-api-1v9v.onrender.com/api/v1";
 
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 60000, // 60s to handle Render cold starts
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('token');
+  const token = await SecureStore.getItemAsync('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -26,13 +25,6 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.code === 'ECONNABORTED') {
-      console.error('[API] Request timed out');
-    } else if (!error.response) {
-      console.error('[API] Network error - no response received:', error.message);
-    } else {
-      console.error(`[API] ${error.response.status}: ${error.response.data?.message || error.message}`);
-    }
     return Promise.reject(error);
   }
 );

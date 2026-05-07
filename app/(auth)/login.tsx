@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as yup from "yup";
 import { authService, handleApiError } from "@/src/api/authService";
 import { useAuthStore } from "@/src/store/useAuthStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
 const loginSchema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
@@ -37,8 +37,8 @@ export default function LoginScreen() {
 
             if (response.isOnboarded) {
                 // Fully verified
-                await AsyncStorage.setItem("token", response.token);
-                await AsyncStorage.setItem("user", JSON.stringify(response.user));
+                await SecureStore.setItemAsync("token", response.token);
+                await SecureStore.setItemAsync("user", JSON.stringify(response.user));
                 setAuth(response.user, response.token);
                 router.replace("/(tabs)");
             } else {
@@ -47,7 +47,6 @@ export default function LoginScreen() {
                 router.push("/(auth)/otp");
             }
         } catch (error: any) {
-            console.log(error)
             if (error instanceof yup.ValidationError) {
                 const validationErrors: Record<string, string> = {};
                 error.inner.forEach((err) => {

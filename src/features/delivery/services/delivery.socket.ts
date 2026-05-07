@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { API_URL } from "@/src/api/config";
 import {
   DeliveryAcceptedPayload,
@@ -15,14 +15,14 @@ let socket: Socket | null = null;
 export const connectDeliverySocket = async (): Promise<Socket> => {
   if (socket?.connected) return socket;
 
-  const token = await AsyncStorage.getItem("token");
+  const token = await SecureStore.getItemAsync("token");
 
   // Derive base URL from API URL (strip /api/v1)
   const baseUrl = API_URL.replace("/api/v1", "");
 
   socket = io(baseUrl, {
     transports: ["websocket"],
-    auth: { token },
+    extraHeaders: token ? { Authorization: `Bearer ${token}` } : {},
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000,

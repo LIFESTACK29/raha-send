@@ -14,15 +14,16 @@ export const authService = {
     return response.data;
   },
   login: async (email: string, password: string) => {
-    console.log(email, password);
     const response = await api.post('/auth/login', { email, password });
-    console.log(response);
     return response.data;
   },
   getCurrentUser: async () => {
     const response = await api.get('/auth/me');
     return response.data;
-  }
+  },
+  logout: async () => {
+    await api.post('/auth/logout');
+  },
 };
 
 export const handleApiError = (error: any) => {

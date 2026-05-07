@@ -1,21 +1,23 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFonts } from "expo-font";
+import { AppState, AppStateStatus } from "react-native";
 import "react-native-reanimated";
 import "../global.css";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { authService } from "@/src/api/authService";
 import { ThemeColors } from "@/constants/theme";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
     anchor: "index",
 };
+
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
 
 export default function RootLayout() {
     const [fontsLoaded, error] = useFonts({
@@ -24,24 +26,25 @@ export default function RootLayout() {
         "GTWalsheimPro-Bold": require("../src/assets/fonts/gt-walshiem-pro/GTWalsheimPro-Bold.ttf"),
     });
 
-    const { token, isInitialized, setInitialized, setAuth } = useAuthStore();
+    const { token, isInitialized, setInitialized, setAuth, logout } = useAuthStore();
     const segments = useSegments();
     const router = useRouter();
+    const backgroundTimestamp = useRef<number | null>(null);
 
     useEffect(() => {
         const initAuth = async () => {
             try {
-                const storedToken = await AsyncStorage.getItem("token");
-                const storedUserParam = await AsyncStorage.getItem("user");
+                const storedToken = await SecureStore.getItemAsync("token");
+                const storedUserParam = await SecureStore.getItemAsync("user");
 
                 if (storedToken && storedUserParam) {
                     try {
                         const response = await authService.getCurrentUser();
                         setAuth(response.user, storedToken);
-                        await AsyncStorage.setItem("user", JSON.stringify(response.user));
+                        await SecureStore.setItemAsync("user", JSON.stringify(response.user));
                     } catch (e) {
-                        // Token invalid/expired
-                        await AsyncStorage.multiRemove(["token", "user"]);
+                        await SecureStore.deleteItemAsync("token");
+                        await SecureStore.deleteItemAsync("user");
                     }
                 }
             } catch (error) {
@@ -57,6 +60,26 @@ export default function RootLayout() {
         }
     }, [fontsLoaded, error]);
 
+    // Inactivity timeout — clear session if app is backgrounded for >15 min
+    useEffect(() => {
+        const handleAppStateChange = (nextState: AppStateStatus) => {
+            if (nextState === "background" || nextState === "inactive") {
+                backgroundTimestamp.current = Date.now();
+            } else if (nextState === "active") {
+                if (
+                    backgroundTimestamp.current !== null &&
+                    Date.now() - backgroundTimestamp.current > INACTIVITY_LIMIT_MS
+                ) {
+                    logout();
+                }
+                backgroundTimestamp.current = null;
+            }
+        };
+
+        const sub = AppState.addEventListener("change", handleAppStateChange);
+        return () => sub.remove();
+    }, [logout]);
+
     useEffect(() => {
         if (!isInitialized || !fontsLoaded) return;
 
@@ -65,12 +88,10 @@ export default function RootLayout() {
         const isRoot = segments.length === 0 || (segments.length === 1 && segments[0] === "index");
 
         if (token) {
-            // User is authenticated
             if (inAuthGroup || isRoot) {
                 router.replace("/(tabs)");
             }
         } else {
-            // User is not authenticated
             const inDeliveryGroup = segments[0] === "delivery";
             if (inTabsGroup || inDeliveryGroup) {
                 router.replace("/(auth)/login");

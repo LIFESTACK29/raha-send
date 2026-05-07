@@ -4,7 +4,6 @@ import {
     Text,
     TouchableOpacity,
     View,
-    Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -14,23 +13,31 @@ import { useRouter } from "expo-router";
 const deliveryOptions = [
     {
         id: "instant",
-        title: "Instant Delivery",
-        description: "Courier takes only your package and delivers instantly",
+        title: "Instant",
+        subtitle: "Delivery",
+        description: "Fast pickup,\ndelivered now",
         icon: "flash-outline",
-        iconColor: "#01656c",
-        bg: "#bbcf8d",
-        watermarkColor: "rgba(1, 101, 108, 0.12)",
+        iconColor: "#ffffff",
+        iconBg: "#01656c",
+        bg: "#022401",
+        textColor: "#ffffff",
+        subtitleColor: "rgba(255,255,255,0.65)",
         borderColor: "transparent",
+        available: true,
     },
     {
         id: "schedule",
-        title: "Schedule Delivery",
-        description: "Courier comes to pick up on your specified date and time",
+        title: "Schedule",
+        subtitle: "Delivery",
+        description: "Pick a date\n& time",
         icon: "stopwatch-outline",
         iconColor: "#01656c",
+        iconBg: "#e8f4f4",
         bg: "#ffffff",
-        watermarkColor: "#f4f4f4",
+        textColor: "#022401",
+        subtitleColor: "#6b7280",
         borderColor: "#e5e7eb",
+        available: false,
     },
 ];
 
@@ -103,16 +110,17 @@ export default function HomeScreen() {
                         What would you like to do?
                     </Text>
 
-                    {/* Delivery Option Cards */}
-                    <View className="gap-4">
+                    {/* Side-by-side delivery option cards */}
+                    <View className="flex-row gap-3">
                         {deliveryOptions.map((option) => (
                             <TouchableOpacity
                                 key={option.id}
-                                activeOpacity={0.85}
-                                className="rounded-xl p-6 overflow-hidden relative border"
+                                activeOpacity={option.available ? 0.8 : 1}
+                                className="flex-1 rounded-2xl p-4 border overflow-hidden"
                                 style={{
                                     backgroundColor: option.bg,
                                     borderColor: option.borderColor,
+                                    opacity: option.available ? 1 : 0.72,
                                 }}
                                 onPress={() => {
                                     if (option.id === "instant") {
@@ -120,34 +128,64 @@ export default function HomeScreen() {
                                     }
                                 }}
                             >
-                                {/* Background Watermark */}
-                                <Ionicons
-                                    name={option.icon as any}
-                                    size={option.id === "schedule" ? 240 : 200}
-                                    color={option.watermarkColor}
-                                    style={{
-                                        position: "absolute",
-                                        right: option.id === "schedule" ? -90 : -20,
-                                        top: option.id === "schedule" ? -30 : -40,
-                                        transform: option.id === "instant" ? [{ rotate: "15deg" }] : [],
-                                    }}
-                                />
-
-                                {/* Icon */}
-                                <View className="mb-3">
+                                {/* Icon badge */}
+                                <View
+                                    className="w-10 h-10 rounded-xl items-center justify-center mb-4"
+                                    style={{ backgroundColor: option.iconBg }}
+                                >
                                     <Ionicons
                                         name={option.icon as any}
-                                        size={34}
+                                        size={20}
                                         color={option.iconColor}
                                     />
                                 </View>
-                                
-                                <Text className="text-[22px] font-walsheim-bold text-black my-3">
+
+                                {/* Title block */}
+                                <Text
+                                    className="text-[17px] font-walsheim-bold leading-tight"
+                                    style={{ color: option.textColor }}
+                                >
                                     {option.title}
                                 </Text>
-                                <Text className="text-[14px] text-[#4a4a4a] leading-5 pr-8">
+                                <Text
+                                    className="text-[17px] font-walsheim-bold leading-tight mb-3"
+                                    style={{ color: option.textColor }}
+                                >
+                                    {option.subtitle}
+                                </Text>
+
+                                {/* Description */}
+                                <Text
+                                    className="text-[12px] leading-[17px]"
+                                    style={{ color: option.subtitleColor }}
+                                >
                                     {option.description}
                                 </Text>
+
+                                {/* Coming soon badge OR arrow */}
+                                <View className="mt-5 flex-row items-center justify-between">
+                                    {option.available ? (
+                                        <View
+                                            className="w-8 h-8 rounded-full items-center justify-center"
+                                            style={{ backgroundColor: option.iconBg }}
+                                        >
+                                            <Ionicons
+                                                name="arrow-forward"
+                                                size={16}
+                                                color={option.iconColor}
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View
+                                            className="px-2 py-1 rounded-full"
+                                            style={{ backgroundColor: "#f3f4f6" }}
+                                        >
+                                            <Text className="text-[10px] font-semibold text-gray-400">
+                                                Coming soon
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </View>
