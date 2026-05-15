@@ -117,7 +117,7 @@ export interface InsufficientWalletBalanceData {
 // ──────────────────────────────────────────────
 // Delivery (Creation Phase)
 // ──────────────────────────────────────────────
-export type DeliveryStatus = "PENDING" | "ONGOING" | "COMPLETED" | "CANCELLED";
+export type DeliveryStatus = "PENDING" | "ONGOING" | "DELIVERED" | "CANCELLED";
 
 export interface Delivery {
     id: string;
@@ -135,9 +135,10 @@ export interface Delivery {
     };
     package: PackageInfo;
     riderId?: string;
-    rider?: Rider;
+    rider?: Rider | null;
     matchRequestId?: string;
     createdAt: string;
+    updatedAt?: string;
 }
 
 // ──────────────────────────────────────────────

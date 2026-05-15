@@ -86,4 +86,24 @@ export const deliveryService = {
     const response = await api.post(`/deliveries/match-requests/${matchRequestId}/create-manual`);
     return response.data;
   },
+
+  /**
+   * Fetch the authenticated user's delivery history.
+   * Optional limit (for home screen preview) and status filter.
+   */
+  getMyDeliveries: async (params?: {
+    limit?: number;
+    status?: string;
+  }): Promise<{ success: boolean; deliveries: Delivery[] }> => {
+    const response = await api.get("/deliveries/my-deliveries", { params });
+    return response.data;
+  },
+
+  /**
+   * Fetch a single delivery by ID.
+   */
+  getDeliveryById: async (id: string): Promise<{ success: boolean; delivery: Delivery }> => {
+    const response = await api.get(`/deliveries/${id}`);
+    return response.data;
+  },
 };

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { WalletCard } from "../../../components/WalletCard";
 import { useWalletStore } from "../../../store/useWalletStore";
 import { FundWalletModal } from "../components/FundWalletModal";
 import { WalletEmptyState } from "../components/WalletEmptyState";
@@ -93,48 +94,7 @@ export const WalletHomeScreen = () => {
       >
         <View className="px-5 mt-4">
           <Text className="text-xl mb-4 font-walsheim-bold">My Wallet</Text>
-          {/* Balance Card - Matching Instant Delivery UI */}
-          <View
-            className="rounded-xl p-6 overflow-hidden relative border"
-            style={{
-              backgroundColor: "#bbcf8d",
-              borderColor: "transparent",
-            }}
-          >
-            {/* Background Watermark */}
-            <Ionicons
-              name="wallet-outline"
-              size={200}
-              color="rgba(1, 101, 108, 0.12)"
-              style={{
-                position: "absolute",
-                right: -20,
-                top: -40,
-                transform: [{ rotate: "15deg" }],
-              }}
-            />
-
-            {/* Icon */}
-            <View className="mb-3 flex-row justify-between items-start">
-              <View className="bg-white/30 p-2 rounded-full">
-                <Ionicons name="wallet-outline" size={24} color="#01656c" />
-              </View>
-              {accountPreview && (
-                <View className="bg-white/40 px-3 py-1 rounded-full">
-                  <Text className="text-xs font-walsheim-bold text-[#01656c]">
-                    {accountPreview.bankName} • {accountPreview.last4}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <Text className="text-[14px] text-[#01656c] font-walsheim mb-1">
-              Total Balance
-            </Text>
-            <Text className="text-[32px] font-walsheim-bold text-black mb-3">
-              ₦ {balance.toLocaleString()}
-            </Text>
-          </View>
+          <WalletCard balance={balance} accountPreview={accountPreview} onTopUp={handleFundWallet} />
 
           {/* Action Buttons */}
           <View className="flex-row justify-between mt-6 gap-3">

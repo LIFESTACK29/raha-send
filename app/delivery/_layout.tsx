@@ -8,6 +8,7 @@ export default function DeliveryLayout() {
       <Stack.Screen name="matching-rider" />
       <Stack.Screen name="manual-pending" />
       <Stack.Screen name="confirmed" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

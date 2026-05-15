@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -9,6 +11,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { deliveryService } from "@/src/features/delivery/services/delivery.api";
+import { Delivery } from "@/src/features/delivery/types/delivery.types";
+import { WalletCard } from "@/src/components/WalletCard";
+import { useWalletStore } from "@/src/store/useWalletStore";
 
 const deliveryOptions = [
     {
@@ -41,36 +48,74 @@ const deliveryOptions = [
     },
 ];
 
-const historyData = [
-    {
-        id: "ORD81234",
-        recipient: "Paul Pogba",
-        dropOff: "Maryland bustop, Anthony Ikeja",
-        date: "12 January 2020, 2:43pm",
-        status: "Completed",
-    },
-    {
-        id: "ORD81234",
-        recipient: "Paul Pogba",
-        dropOff: "Maryland bustop, Anthony Ikeja",
-        date: "12 January 2020, 2:43pm",
-        status: "Completed",
-    },
-];
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+    PENDING:   { label: "Pending",   bg: "#fef9c3", text: "#854d0e" },
+    ONGOING:   { label: "Active",    bg: "#dbeafe", text: "#1e40af" },
+    DELIVERED: { label: "Delivered", bg: "#dcfce7", text: "#166534" },
+    CANCELLED: { label: "Cancelled", bg: "#fee2e2", text: "#991b1b" },
+};
+
+const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
+
+const formatFee = (fee: number) => `₦${fee.toLocaleString()}`;
 
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { user } = useAuthStore();
+
+    const { balance, accountPreview, hasWallet, fetchWalletStatus } = useWalletStore();
+
+    const [recentDeliveries, setRecentDeliveries] = useState<Delivery[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchRecentDeliveries = useCallback(async () => {
+        try {
+            const data = await deliveryService.getMyDeliveries({ limit: 3 });
+            setRecentDeliveries(data.deliveries ?? []);
+        } catch {
+            // silently ignore — empty state handles it
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchRecentDeliveries();
+        fetchWalletStatus();
+    }, [fetchRecentDeliveries, fetchWalletStatus]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([fetchRecentDeliveries(), fetchWalletStatus()]);
+        setRefreshing(false);
+    }, [fetchRecentDeliveries, fetchWalletStatus]);
+
+    const firstName = user?.firstName ?? "there";
+    const initials = user
+        ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+        : "?";
 
     return (
         <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
             <StatusBar style="dark" />
             <ScrollView
                 className="flex-1"
-                contentContainerStyle={{
-                    paddingBottom: insets.bottom + 80,
-                }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
             >
                 {/* Header */}
                 <View
@@ -82,11 +127,10 @@ export default function HomeScreen() {
                             Welcome Back
                         </Text>
                         <Text className="text-3xl font-walsheim-bold text-foreground">
-                            Davidson Edgar
+                            {firstName}
                         </Text>
                     </View>
                     <View className="flex-row items-center gap-3">
-                        {/* Notification Bell */}
                         <TouchableOpacity className="relative">
                             <Ionicons
                                 name="notifications-outline"
@@ -95,14 +139,22 @@ export default function HomeScreen() {
                             />
                             <View className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
                         </TouchableOpacity>
-                        {/* Avatar */}
                         <View className="w-11 h-11 rounded-full bg-[#bbcf8d] items-center justify-center">
-                            <Text className="text-white text-lg font-bold">
-                                DE
-                            </Text>
+                            <Text className="text-white text-lg font-bold">{initials}</Text>
                         </View>
                     </View>
                 </View>
+
+                {/* Wallet Card */}
+                {hasWallet && (
+                    <View className="px-5 mt-4">
+                        <WalletCard
+                            balance={balance}
+                            accountPreview={accountPreview}
+                            onTopUp={() => router.push("/(tabs)/wallet" as any)}
+                        />
+                    </View>
+                )}
 
                 {/* What would you like to do */}
                 <View className="px-5 mt-4">
@@ -110,7 +162,6 @@ export default function HomeScreen() {
                         What would you like to do?
                     </Text>
 
-                    {/* Side-by-side delivery option cards */}
                     <View className="flex-row gap-3">
                         {deliveryOptions.map((option) => (
                             <TouchableOpacity
@@ -128,7 +179,6 @@ export default function HomeScreen() {
                                     }
                                 }}
                             >
-                                {/* Icon badge */}
                                 <View
                                     className="w-10 h-10 rounded-xl items-center justify-center mb-4"
                                     style={{ backgroundColor: option.iconBg }}
@@ -139,8 +189,6 @@ export default function HomeScreen() {
                                         color={option.iconColor}
                                     />
                                 </View>
-
-                                {/* Title block */}
                                 <Text
                                     className="text-[17px] font-walsheim-bold leading-tight"
                                     style={{ color: option.textColor }}
@@ -153,16 +201,12 @@ export default function HomeScreen() {
                                 >
                                     {option.subtitle}
                                 </Text>
-
-                                {/* Description */}
                                 <Text
                                     className="text-[12px] leading-[17px]"
                                     style={{ color: option.subtitleColor }}
                                 >
                                     {option.description}
                                 </Text>
-
-                                {/* Coming soon badge OR arrow */}
                                 <View className="mt-5 flex-row items-center justify-between">
                                     {option.available ? (
                                         <View
@@ -195,65 +239,94 @@ export default function HomeScreen() {
                 <View className="px-5 mt-8">
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-lg font-walsheim-bold text-foreground">
-                            History
+                            Recent Deliveries
                         </Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push("/(tabs)/history" as any)}>
                             <Text className="text-sm text-teal-700 font-semibold">
                                 View all
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* History Cards */}
-                    <View className="gap-4">
-                        {historyData.map((item, index) => (
-                            <View
-                                key={index}
-                                className="border border-gray-100 rounded-2xl p-4"
-                            >
-                                {/* Order ID + Status */}
-                                <View className="flex-row justify-between items-center mb-1">
-                                    <Text className="text-sm font-walsheim-bold text-foreground">
-                                        {item.id}
-                                    </Text>
-                                    <View className="bg-green-100 px-3 py-1 rounded-full">
-                                        <Text className="text-xs font-semibold text-green-700">
-                                            {item.status}
-                                        </Text>
-                                    </View>
-                                </View>
+                    {historyLoading ? (
+                        <View className="py-8 items-center">
+                            <ActivityIndicator color="#01656c" />
+                        </View>
+                    ) : recentDeliveries.length === 0 ? (
+                        <View className="py-10 items-center gap-2">
+                            <Ionicons name="cube-outline" size={40} color="#d1d5db" />
+                            <Text className="text-sm text-gray-400 font-walsheim mt-2">
+                                No deliveries yet
+                            </Text>
+                        </View>
+                    ) : (
+                        <View className="gap-4">
+                            {recentDeliveries.map((item) => {
+                                const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.PENDING;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        className="border border-gray-100 rounded-2xl p-4"
+                                        activeOpacity={0.75}
+                                        onPress={() =>
+                                            router.push(`/delivery/${item.id}` as any)
+                                        }
+                                    >
+                                        {/* Tracking ID + Status */}
+                                        <View className="flex-row justify-between items-center mb-1">
+                                            <Text className="text-sm font-walsheim-bold text-foreground">
+                                                {item.trackingId}
+                                            </Text>
+                                            <View
+                                                className="px-3 py-1 rounded-full"
+                                                style={{ backgroundColor: cfg.bg }}
+                                            >
+                                                <Text
+                                                    className="text-xs font-semibold"
+                                                    style={{ color: cfg.text }}
+                                                >
+                                                    {cfg.label}
+                                                </Text>
+                                            </View>
+                                        </View>
 
-                                {/* Recipient */}
-                                <Text className="text-xs text-gray-blue mb-3">
-                                    Recipient: {item.recipient}
-                                </Text>
+                                        {/* Recipient */}
+                                        <Text className="text-xs text-gray-blue mb-3">
+                                            Recipient: {item.contact.receiver.fullName}
+                                        </Text>
 
-                                {/* Divider */}
-                                <View className="border-t border-gray-100 mb-3" />
+                                        <View className="border-t border-gray-100 mb-3" />
 
-                                {/* Drop-off info */}
-                                <View className="flex-row items-start gap-2">
-                                    <Ionicons
-                                        name="location-outline"
-                                        size={14}
-                                        color="#00A86B"
-                                        style={{ marginTop: 1 }}
-                                    />
-                                    <View className="flex-1">
-                                        <Text className="text-xs text-gray-blue">
-                                            Drop off
-                                        </Text>
-                                        <Text className="text-sm font-semibold text-foreground">
-                                            {item.dropOff}
-                                        </Text>
-                                        <Text className="text-xs text-gray-blue mt-0.5">
-                                            {item.date}
-                                        </Text>
-                                    </View>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+                                        {/* Drop-off info */}
+                                        <View className="flex-row items-start gap-2">
+                                            <Ionicons
+                                                name="location-outline"
+                                                size={14}
+                                                color="#00A86B"
+                                                style={{ marginTop: 1 }}
+                                            />
+                                            <View className="flex-1">
+                                                <Text className="text-xs text-gray-blue">
+                                                    Drop off
+                                                </Text>
+                                                <Text className="text-sm font-semibold text-foreground">
+                                                    {item.route.dropoff.address}
+                                                </Text>
+                                                <View className="flex-row justify-between items-center mt-0.5">
+                                                    <Text className="text-xs text-gray-blue">
+                                                        {formatDate(item.createdAt)}
+                                                    </Text>
+                                                    <Text className="text-xs font-walsheim-bold text-foreground">
+                                                        {formatFee(item.pricing.fee)}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    )}
                 </View>
             </ScrollView>
         </View>
