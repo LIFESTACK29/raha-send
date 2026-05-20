@@ -158,7 +158,7 @@ export default function OtpScreen() {
                                 ref={(ref) => {
                                     inputs.current[index] = ref;
                                 }}
-                                className="w-12 h-14 bg-[#f4f7f8] rounded-xl text-center text-2xl font-walsheim-medium text-black"
+                                className="w-16 h-16 bg-[#f4f7f8] rounded-xl text-center text-2xl font-walsheim-medium text-black"
                                 keyboardType="number-pad"
                                 maxLength={1}
                                 value={code[index]}

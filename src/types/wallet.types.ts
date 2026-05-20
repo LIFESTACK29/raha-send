@@ -35,10 +35,11 @@ export interface WalletBalanceResponse {
 
 export interface Transaction {
   id: string;
+  _id?: string;
   amount: number;
   type: 'credit' | 'debit';
   status: 'pending' | 'completed' | 'failed';
-  date: string;
+  createdAt: string;
   description: string;
   reference: string;
 }

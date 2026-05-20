@@ -60,7 +60,6 @@ export const useWalletStore = create<WalletStoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const response = await walletService.getWalletBalance();
-      console.log('wallet',response)
       set({
         balance: response.wallet.balance,
         balanceInNaira: response.wallet.balanceInNaira || 0,

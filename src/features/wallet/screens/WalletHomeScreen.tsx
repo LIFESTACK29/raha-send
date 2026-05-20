@@ -20,6 +20,7 @@ export const WalletHomeScreen = () => {
     hasWallet,
     walletStatus,
     balance,
+    balanceInNaira,
     accountPreview,
     fundingDetails,
     fundModalVisible,
@@ -34,8 +35,6 @@ export const WalletHomeScreen = () => {
     fetchTransactions,
     refreshWallet,
   } = useWalletStore();
-
-  console.log(fundingDetails)
 
   useFocusEffect(
     useCallback(() => {
@@ -94,7 +93,7 @@ export const WalletHomeScreen = () => {
       >
         <View className="px-5 mt-4">
           <Text className="text-xl mb-4 font-walsheim-bold">My Wallet</Text>
-          <WalletCard balance={balance} accountPreview={accountPreview} onTopUp={handleFundWallet} />
+          <WalletCard balance={balanceInNaira} accountPreview={accountPreview} onTopUp={handleFundWallet} />
 
           {/* Action Buttons */}
           <View className="flex-row justify-between mt-6 gap-3">
@@ -164,7 +163,9 @@ export const WalletHomeScreen = () => {
                           {tx.description || (tx.type === "credit" ? "Wallet Fund" : "Withdrawal")}
                         </Text>
                         <Text className="text-xs text-gray-blue font-walsheim mt-0.5">
-                          {new Date(tx.date).toLocaleDateString()}
+                          {new Date(tx.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                          {" · "}
+                          {new Date(tx.createdAt).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
                         </Text>
                       </View>
                     </View>
@@ -172,7 +173,7 @@ export const WalletHomeScreen = () => {
                       className={`text-sm font-walsheim-bold ${tx.type === "credit" ? "text-green-600" : "text-foreground"
                         }`}
                     >
-                      {tx.type === "credit" ? "+" : "-"}₦{tx.amount.toLocaleString()}
+                      {tx.type === "credit" ? "+" : "-"}₦{(tx.amount / 100).toLocaleString()}
                     </Text>
                   </View>
                 ))}
