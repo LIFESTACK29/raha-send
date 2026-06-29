@@ -1,20 +1,89 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+    Alert,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDeliveryStore } from "../store/useDeliveryStore";
+import { useCall } from "@/src/features/call/CallProvider";
+import {
+    DeliveryStatusUpdatePayload,
+    getDeliverySocket,
+    onDeliveryCompleted,
+    onDeliveryStatusUpdated,
+} from "../services/delivery.socket";
+
+const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = {
+    ACCEPTED: {
+        label: "Rider is on the way to pick up",
+        color: "#f59e0b",
+        icon: "bicycle-outline",
+    },
+    ONGOING: {
+        label: "Picked up — delivery on the way",
+        color: "#01656c",
+        icon: "navigate-outline",
+    },
+    DELIVERED: {
+        label: "Delivered",
+        color: "#10b981",
+        icon: "checkmark-done-outline",
+    },
+};
 
 export default function DeliveryConfirmedScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { delivery, rider, resetDelivery } = useDeliveryStore();
 
+    const [liveStatus, setLiveStatus] = useState<string>(
+        delivery?.status ?? "ACCEPTED"
+    );
+
+    useEffect(() => {
+        if (!delivery?.trackingId) return;
+        const handleUpdate = (p: DeliveryStatusUpdatePayload) => {
+            if (p.trackingId === delivery.trackingId) setLiveStatus(p.status);
+        };
+        const handleDone = (p: DeliveryStatusUpdatePayload) => {
+            if (p.trackingId === delivery.trackingId) setLiveStatus("DELIVERED");
+        };
+        onDeliveryStatusUpdated(handleUpdate);
+        onDeliveryCompleted(handleDone);
+        return () => {
+            const s = getDeliverySocket();
+            s?.off("delivery_status_updated", handleUpdate);
+            s?.off("delivery_completed", handleDone);
+        };
+    }, [delivery?.trackingId]);
+
+    const { startCall, isBusy } = useCall();
+
+    const handleCall = async () => {
+        if (!delivery?.id) return;
+        try {
+            await startCall(delivery.id);
+        } catch (e: any) {
+            Alert.alert(
+                "Call failed",
+                e?.response?.data?.message || "Unable to start the call right now."
+            );
+        }
+    };
+
     const handleDone = () => {
         resetDelivery();
         router.replace("/(tabs)" as any);
     };
+
+    const statusInfo = STATUS_MAP[liveStatus] ?? STATUS_MAP.ACCEPTED;
 
     return (
         <View style={[st.container, { paddingTop: insets.top }]}>
@@ -26,9 +95,16 @@ export default function DeliveryConfirmedScreen() {
                     <Ionicons name="checkmark" size={44} color="#fff" />
                 </View>
                 <Text style={st.title}>Rider Confirmed!</Text>
-                <Text style={st.sub}>
-                    A rider has accepted your delivery request
-                </Text>
+                <View style={[st.statusPill, { borderColor: statusInfo.color }]}>
+                    <Ionicons
+                        name={statusInfo.icon}
+                        size={16}
+                        color={statusInfo.color}
+                    />
+                    <Text style={[st.statusPillText, { color: statusInfo.color }]}>
+                        {statusInfo.label}
+                    </Text>
+                </View>
 
                 {/* Rider Card */}
                 {rider && (
@@ -66,9 +142,13 @@ export default function DeliveryConfirmedScreen() {
                                     </Text>
                                 </View>
                             </View>
-                            <TouchableOpacity style={st.callBtn}>
+                            <TouchableOpacity
+                                style={st.callBtn}
+                                onPress={handleCall}
+                                disabled={isBusy}
+                            >
                                 <Ionicons
-                                    name="call-outline"
+                                    name="call"
                                     size={20}
                                     color="#022401"
                                 />
@@ -215,6 +295,20 @@ const st = StyleSheet.create({
         color: "#6b7280",
         marginBottom: 28,
         textAlign: "center",
+    },
+    statusPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        borderWidth: 1,
+        borderRadius: 999,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        marginBottom: 28,
+    },
+    statusPillText: {
+        fontSize: 13,
+        fontFamily: "GTWalsheimPro-Medium",
     },
     // Rider card
     riderCard: {

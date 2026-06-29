@@ -10,6 +10,8 @@ import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { authService } from "@/src/api/authService";
 import { ThemeColors } from "@/constants/theme";
+import { registerPushToken } from "@/src/services/push";
+import { CallProvider } from "@/src/features/call/CallProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -59,6 +61,13 @@ export default function RootLayout() {
             SplashScreen.hideAsync();
         }
     }, [fontsLoaded, error]);
+
+    // Register for push notifications once authenticated (login or restart)
+    useEffect(() => {
+        if (token) {
+            registerPushToken();
+        }
+    }, [token]);
 
     // Inactivity timeout — clear session if app is backgrounded for >15 min
     useEffect(() => {
@@ -114,12 +123,14 @@ export default function RootLayout() {
 
     return (
         <ThemeProvider value={navigationTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="delivery" options={{ headerShown: false }} />
-            </Stack>
+            <CallProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="delivery" options={{ headerShown: false }} />
+                </Stack>
+            </CallProvider>
             <StatusBar style="auto" />
         </ThemeProvider>
     );

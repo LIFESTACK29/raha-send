@@ -49,6 +49,31 @@ export const onNoRiderFound = (
   socket?.on("no_rider_found", callback);
 };
 
+export interface DeliveryStatusUpdatePayload {
+  deliveryId: string;
+  trackingId: string;
+  status: "PENDING" | "ACCEPTED" | "ONGOING" | "DELIVERED" | "CANCELLED";
+  payment?: any;
+}
+
+/**
+ * Listen for live status transitions (picked up / on the way).
+ */
+export const onDeliveryStatusUpdated = (
+  callback: (payload: DeliveryStatusUpdatePayload) => void
+) => {
+  socket?.on("delivery_status_updated", callback);
+};
+
+/**
+ * Listen for the final "delivered" event.
+ */
+export const onDeliveryCompleted = (
+  callback: (payload: DeliveryStatusUpdatePayload) => void
+) => {
+  socket?.on("delivery_completed", callback);
+};
+
 /**
  * Remove all delivery-related listeners and disconnect.
  */
@@ -56,6 +81,8 @@ export const disconnectDeliverySocket = () => {
   if (socket) {
     socket.off("delivery_accepted");
     socket.off("no_rider_found");
+    socket.off("delivery_status_updated");
+    socket.off("delivery_completed");
     socket.disconnect();
     socket = null;
   }
