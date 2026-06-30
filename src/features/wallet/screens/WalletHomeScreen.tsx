@@ -1,15 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Toast, ToastType } from "../../../components/Toast";
 import { WalletCard } from "../../../components/WalletCard";
 import { useWalletStore } from "../../../store/useWalletStore";
 import { FundWalletModal } from "../components/FundWalletModal";
@@ -36,6 +36,15 @@ export const WalletHomeScreen = () => {
     refreshWallet,
   } = useWalletStore();
 
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: ToastType;
+  }>({ visible: false, message: "", type: "success" });
+
+  const showToast = (message: string, type: ToastType = "success") =>
+    setToast({ visible: true, message, type });
+
   useFocusEffect(
     useCallback(() => {
       fetchWalletStatus();
@@ -45,10 +54,19 @@ export const WalletHomeScreen = () => {
 
   const handleCreateWallet = async () => {
     try {
-      await createWallet();
-      Alert.alert("Success", "Wallet created successfully");
+      const res = await createWallet();
+      if (res.wallet && res.walletStatus !== "creating") {
+        showToast("Wallet created successfully", "success");
+      } else {
+        showToast(
+          "Wallet is being set up — this may take a moment.",
+          "info"
+        );
+      }
+      // Refresh the page (status + transactions)
+      await refreshWallet();
     } catch (err: any) {
-      Alert.alert("Error", err.toString() || "Failed to create wallet");
+      showToast(err?.toString?.() || "Failed to create wallet", "error");
     }
   };
 
@@ -75,15 +93,29 @@ export const WalletHomeScreen = () => {
 
   if (!hasWallet || walletStatus === "not_created") {
     return (
-      <WalletEmptyState
-        onCreateWallet={handleCreateWallet}
-        loading={loading}
-      />
+      <View className="flex-1">
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onHide={() => setToast((t) => ({ ...t, visible: false }))}
+        />
+        <WalletEmptyState
+          onCreateWallet={handleCreateWallet}
+          loading={loading}
+        />
+      </View>
     );
   }
 
   return (
     <View className="flex-1">
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast((t) => ({ ...t, visible: false }))}
+      />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

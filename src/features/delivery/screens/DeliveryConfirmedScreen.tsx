@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import {
     Alert,
     Image,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -13,11 +14,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDeliveryStore } from "../store/useDeliveryStore";
 import { useCall } from "@/src/features/call/CallProvider";
+import { LiveTrackingMap, LatLng } from "../components/LiveTrackingMap";
 import {
+    connectDeliverySocket,
     DeliveryStatusUpdatePayload,
     getDeliverySocket,
     onDeliveryCompleted,
     onDeliveryStatusUpdated,
+    onRiderLocation,
+    RiderLocationPayload,
 } from "../services/delivery.socket";
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = {
@@ -46,23 +51,45 @@ export default function DeliveryConfirmedScreen() {
     const [liveStatus, setLiveStatus] = useState<string>(
         delivery?.status ?? "ACCEPTED"
     );
+    const [riderLoc, setRiderLoc] = useState<LatLng | null>(null);
 
     useEffect(() => {
         if (!delivery?.trackingId) return;
+
         const handleUpdate = (p: DeliveryStatusUpdatePayload) => {
             if (p.trackingId === delivery.trackingId) setLiveStatus(p.status);
         };
         const handleDone = (p: DeliveryStatusUpdatePayload) => {
             if (p.trackingId === delivery.trackingId) setLiveStatus("DELIVERED");
         };
-        onDeliveryStatusUpdated(handleUpdate);
-        onDeliveryCompleted(handleDone);
-        return () => {
-            const s = getDeliverySocket();
-            s?.off("delivery_status_updated", handleUpdate);
-            s?.off("delivery_completed", handleDone);
+        const handleRider = (p: RiderLocationPayload) => {
+            if (p.deliveryId === delivery.id) {
+                setRiderLoc({ lat: p.lat, lng: p.lng });
+            }
         };
-    }, [delivery?.trackingId]);
+
+        // The matching screen disconnects the socket on unmount, so reconnect
+        // (no-op if already connected) before re-subscribing.
+        let cleanup = () => {};
+        (async () => {
+            try {
+                await connectDeliverySocket();
+            } catch {
+                // socket retries on its own
+            }
+            onDeliveryStatusUpdated(handleUpdate);
+            onDeliveryCompleted(handleDone);
+            onRiderLocation(handleRider);
+            cleanup = () => {
+                const s = getDeliverySocket();
+                s?.off("delivery_status_updated", handleUpdate);
+                s?.off("delivery_completed", handleDone);
+                s?.off("rider_location", handleRider);
+            };
+        })();
+
+        return () => cleanup();
+    }, [delivery?.trackingId, delivery?.id]);
 
     const { startCall, isBusy } = useCall();
 
@@ -85,11 +112,22 @@ export default function DeliveryConfirmedScreen() {
 
     const statusInfo = STATUS_MAP[liveStatus] ?? STATUS_MAP.ACCEPTED;
 
+    const pickup = delivery?.route?.pickup;
+    const dropoff = delivery?.route?.dropoff;
+    const mapPhase = liveStatus === "ONGOING" ? "to_dropoff" : "to_pickup";
+    const canShowMap =
+        !!pickup && !!dropoff &&
+        typeof pickup.lat === "number" && typeof dropoff.lat === "number";
+
     return (
         <View style={[st.container, { paddingTop: insets.top }]}>
             <StatusBar style="dark" />
 
-            <View style={st.content}>
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={st.content}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Success Icon */}
                 <View style={st.successCircle}>
                     <Ionicons name="checkmark" size={44} color="#fff" />
@@ -105,6 +143,24 @@ export default function DeliveryConfirmedScreen() {
                         {statusInfo.label}
                     </Text>
                 </View>
+
+                {/* Live tracking map */}
+                {canShowMap && (
+                    <View style={st.mapWrap}>
+                        <LiveTrackingMap
+                            pickup={{ lat: pickup!.lat, lng: pickup!.lng }}
+                            dropoff={{ lat: dropoff!.lat, lng: dropoff!.lng }}
+                            rider={riderLoc}
+                            phase={mapPhase}
+                            height={240}
+                        />
+                        {!riderLoc && (
+                            <Text style={st.mapHint}>
+                                Waiting for the rider's live location…
+                            </Text>
+                        )}
+                    </View>
+                )}
 
                 {/* Rider Card */}
                 {rider && (
@@ -219,7 +275,7 @@ export default function DeliveryConfirmedScreen() {
                         />
                     </View>
                 )}
-            </View>
+            </ScrollView>
 
             {/* Bottom CTA */}
             <View style={[st.bottom, { paddingBottom: insets.bottom + 16 }]}>
@@ -268,10 +324,11 @@ function InfoRow({
 const st = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     content: {
-        flex: 1,
+        flexGrow: 1,
         alignItems: "center",
         paddingTop: 50,
         paddingHorizontal: 24,
+        paddingBottom: 24,
     },
     successCircle: {
         width: 80,
@@ -309,6 +366,17 @@ const st = StyleSheet.create({
     statusPillText: {
         fontSize: 13,
         fontFamily: "GTWalsheimPro-Medium",
+    },
+    mapWrap: {
+        width: "100%",
+        marginBottom: 16,
+    },
+    mapHint: {
+        fontSize: 12,
+        fontFamily: "GTWalsheimPro",
+        color: "#6b7280",
+        textAlign: "center",
+        marginTop: 8,
     },
     // Rider card
     riderCard: {

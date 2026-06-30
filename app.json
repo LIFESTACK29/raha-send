@@ -63,6 +63,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Send uses your location to auto-fill your pickup address."
+        }
+      ],
       "@livekit/react-native-expo-plugin",
       [
         "@config-plugins/react-native-webrtc",

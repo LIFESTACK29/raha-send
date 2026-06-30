@@ -73,7 +73,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { user } = useAuthStore();
 
-    const { balance, accountPreview, hasWallet, fetchWalletStatus } = useWalletStore();
+    const { balanceInNaira, accountPreview, hasWallet, fetchWalletStatus } = useWalletStore();
 
     const [recentDeliveries, setRecentDeliveries] = useState<Delivery[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
@@ -149,7 +149,7 @@ export default function HomeScreen() {
                 {hasWallet && (
                     <View className="px-5 mt-4">
                         <WalletCard
-                            balance={balance}
+                            balance={balanceInNaira}
                             accountPreview={accountPreview}
                             onTopUp={() => router.push("/(tabs)/wallet" as any)}
                         />

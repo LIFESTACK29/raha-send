@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -65,6 +67,63 @@ export default function CreateDeliveryScreen() {
         matchRequest,
         resetDelivery,
     } = useDeliveryStore();
+
+    const [locatingPickup, setLocatingPickup] = useState(false);
+
+    const handleUseCurrentLocation = async () => {
+        try {
+            setLocatingPickup(true);
+            const { status } =
+                await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert(
+                    "Permission Required",
+                    "Allow location access to auto-fill your pickup address.",
+                );
+                return;
+            }
+
+            const pos = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+            });
+            const { latitude, longitude } = pos.coords;
+
+            // Reverse-geocode via Nominatim to match the autocomplete address format.
+            let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            let shortName = "Current location";
+            try {
+                const res = await axios.get(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${latitude}&lon=${longitude}`,
+                    {
+                        timeout: 8000,
+                        headers: {
+                            Accept: "application/json",
+                            "User-Agent":
+                                "RahaDeliveryApp/1.0 (contact: admin@raha.com)",
+                        },
+                    },
+                );
+                if (res.data?.display_name) {
+                    address = res.data.display_name;
+                    shortName =
+                        res.data.name ||
+                        res.data.address?.road ||
+                        address.split(",")[0].trim();
+                }
+            } catch {
+                // Keep the coordinate fallback if reverse geocoding fails.
+            }
+
+            setPickup({ address, lat: latitude, lng: longitude, shortName });
+        } catch {
+            Alert.alert(
+                "Location Error",
+                "Couldn't get your current location. Please try again or enter it manually.",
+            );
+        } finally {
+            setLocatingPickup(false);
+        }
+    };
 
     const loggedInUser = useMemo(
         () =>
@@ -263,6 +322,27 @@ export default function CreateDeliveryScreen() {
                         value={draft.pickupLocation}
                         onSelect={setPickup}
                     />
+                    <TouchableOpacity
+                        onPress={handleUseCurrentLocation}
+                        disabled={locatingPickup}
+                        activeOpacity={0.7}
+                        style={styles.useLocationBtn}
+                    >
+                        {locatingPickup ? (
+                            <ActivityIndicator size="small" color="#01656c" />
+                        ) : (
+                            <Ionicons
+                                name="locate-outline"
+                                size={16}
+                                color="#01656c"
+                            />
+                        )}
+                        <Text style={styles.useLocationText}>
+                            {locatingPickup
+                                ? "Getting your location…"
+                                : "Use my current location"}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={{ zIndex: 10, marginTop: 8 }}>
@@ -621,6 +701,21 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: "#f3f4f6",
         marginVertical: 20,
+    },
+    useLocationBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        alignSelf: "flex-start",
+        marginTop: 8,
+        marginLeft: 2,
+        paddingVertical: 6,
+        paddingHorizontal: 4,
+    },
+    useLocationText: {
+        fontSize: 13,
+        fontFamily: "GTWalsheimPro-Medium",
+        color: "#01656c",
     },
     packageGrid: {
         flexDirection: "row",

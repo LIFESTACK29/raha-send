@@ -37,14 +37,24 @@ export const useWalletStore = create<WalletStoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const response = await walletService.createWallet();
-      set({
-        hasWallet: true,
-        walletStatus: "active",
-        balance: response.wallet.balance,
-        balanceInNaira: response.wallet.balanceInNaira || 0,
-      });
-      // Optionally refetch the full status to get masked preview etc.
+
+      // The backend may return a 202 with no wallet yet (status "creating")
+      // while the dedicated account is provisioned asynchronously. Guard against
+      // reading `wallet` when it isn't present.
+      if (response.wallet) {
+        set({
+          hasWallet: true,
+          walletStatus: response.walletStatus ?? "active",
+          balance: response.wallet.balance,
+          balanceInNaira: response.wallet.balanceInNaira || 0,
+        });
+      } else {
+        set({ walletStatus: response.walletStatus ?? "creating" });
+      }
+
+      // Refetch the full status to get masked preview, final state, etc.
       await get().fetchWalletStatus();
+      return response;
     } catch (error: any) {
       set({ error: error.toString() });
       throw error;

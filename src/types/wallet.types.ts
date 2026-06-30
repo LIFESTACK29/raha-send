@@ -1,4 +1,9 @@
-export type WalletStatus = "loading" | "not_created" | "active" | "error";
+export type WalletStatus =
+  | "loading"
+  | "not_created"
+  | "creating"
+  | "active"
+  | "error";
 
 export interface AccountPreview {
   maskedAccountNumber: string;
@@ -26,7 +31,8 @@ export interface WalletStatusResponse {
 
 export interface CreateWalletResponse {
   message: string;
-  wallet: Wallet;
+  walletStatus?: WalletStatus;
+  wallet?: Wallet;
 }
 
 export interface WalletBalanceResponse {
@@ -69,7 +75,7 @@ export interface WalletStoreState {
   
   // Actions
   fetchWalletStatus: () => Promise<void>;
-  createWallet: () => Promise<void>;
+  createWallet: () => Promise<CreateWalletResponse>;
   openFundModal: () => void;
   closeFundModal: () => void;
   fetchWalletBalance: () => Promise<void>;

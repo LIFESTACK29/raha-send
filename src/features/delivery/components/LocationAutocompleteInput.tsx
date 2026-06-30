@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import axios from "axios";
 import {
   View,
@@ -57,6 +57,16 @@ export const LocationAutocompleteInput: React.FC<
   const [isFocused, setIsFocused] = useState(false);
   const [selected, setSelected] = useState(!!value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reflect a value set programmatically from the parent (e.g. "use my current location").
+  useEffect(() => {
+    if (value?.shortName && value.shortName !== query) {
+      setQuery(value.shortName);
+      setSelected(true);
+      setSuggestions([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.shortName]);
 
   const fetchSuggestions = useCallback(
     async (text: string) => {

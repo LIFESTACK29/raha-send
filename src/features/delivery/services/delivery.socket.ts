@@ -74,6 +74,22 @@ export const onDeliveryCompleted = (
   socket?.on("delivery_completed", callback);
 };
 
+export interface RiderLocationPayload {
+  deliveryId: string;
+  lat: number;
+  lng: number;
+  phase?: "to_pickup" | "to_dropoff";
+}
+
+/**
+ * Listen for the assigned rider's live location during an active delivery.
+ */
+export const onRiderLocation = (
+  callback: (payload: RiderLocationPayload) => void
+) => {
+  socket?.on("rider_location", callback);
+};
+
 /**
  * Remove all delivery-related listeners and disconnect.
  */
@@ -83,6 +99,7 @@ export const disconnectDeliverySocket = () => {
     socket.off("no_rider_found");
     socket.off("delivery_status_updated");
     socket.off("delivery_completed");
+    socket.off("rider_location");
     socket.disconnect();
     socket = null;
   }
