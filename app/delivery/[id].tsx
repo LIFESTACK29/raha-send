@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { deliveryService } from "@/src/features/delivery/services/delivery.api";
 import { Delivery } from "@/src/features/delivery/types/delivery.types";
-import { useDeliveryStore } from "@/src/features/delivery/store/useDeliveryStore";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -96,37 +95,29 @@ export default function DeliveryDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
 
-    // Seed from the store (e.g. right after a rider accepts) so the screen
-    // renders immediately and a transient fetch failure can't blank it out.
-    const seeded =
-        useDeliveryStore.getState().delivery?.id === id
-            ? useDeliveryStore.getState().delivery
-            : null;
-
-    const [delivery, setDelivery] = useState<Delivery | null>(seeded);
-    const [loading, setLoading] = useState(!seeded);
+    const [delivery, setDelivery] = useState<Delivery | null>(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const load = useCallback(async () => {
         if (!id) return;
-        (async () => {
-            try {
-                const data = await deliveryService.getDeliveryById(id);
-                setDelivery(data.delivery);
-                setError(null);
-            } catch (e: any) {
-                // Only surface an error if we have nothing to show.
-                if (!seeded) {
-                    setError(
-                        e?.response?.data?.message ??
-                            "Failed to load delivery details."
-                    );
-                }
-            } finally {
-                setLoading(false);
-            }
-        })();
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await deliveryService.getDeliveryById(id);
+            setDelivery(data.delivery);
+        } catch (e: any) {
+            setError(
+                e?.response?.data?.message ?? "Failed to load delivery details."
+            );
+        } finally {
+            setLoading(false);
+        }
     }, [id]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
 
     // ── Loading ──────────────────────────────────────────────────────────────
     if (loading) {
@@ -155,6 +146,12 @@ export default function DeliveryDetailScreen() {
                     <Text className="text-base font-walsheim-bold text-foreground text-center">
                         {error ?? "Delivery not found"}
                     </Text>
+                    <TouchableOpacity
+                        onPress={load}
+                        className="mt-2 px-6 py-3 rounded-xl bg-[#022401]"
+                    >
+                        <Text className="text-white font-walsheim-bold">Retry</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         );

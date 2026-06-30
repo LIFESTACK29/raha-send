@@ -6,7 +6,9 @@ export const API_URL =
 
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  // Generous timeout: the API host (Render free tier) can cold-start and take
+  // 30s+ on the first request after idling.
+  timeout: 45000,
   headers: {
     'Content-Type': 'application/json',
   },
